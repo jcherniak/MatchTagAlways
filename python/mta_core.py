@@ -33,6 +33,7 @@ TAG_REGEX = re.compile(
   re.VERBOSE | re.DOTALL )
 
 COMMENT_REGEX = re.compile( '<!--.*?-->', re.DOTALL )
+PHP_REGEX = re.compile( '<\?php.*?\?>', re.DOTALL )
 
 
 class TagType( object ):
@@ -73,6 +74,16 @@ class Tag( object ):
         return
     return False
 
+
+def PacifyPhp( text ):
+  """Replaces the contents (including delimiters) of all PHP code in the
+  passed-in text with 'x'. For instance, 'foo <?php bar ?>' becomes
+  'foo xxxx xxx xxx'. We can't just remove the PHP because that would screw
+  with the mapping of string offset to Vim line/column."""
+
+  def replacement( match ):
+    return re.sub( '\S', 'x', match.group() )
+  return PHP_REGEX.sub( replacement, text )
 
 def PacifyHtmlComments( text ):
   """Replaces the contents (including delimiters) of all HTML comments in the
@@ -257,7 +268,7 @@ def AdaptCursorOffsetIfNeeded( sanitized_html, cursor_offset ):
 def LocationsOfEnclosingTags( input_html, cursor_line, cursor_column ):
   bad_result = ( 0, 0, 0, 0 )
   try:
-    sanitized_html = PacifyHtmlComments( input_html )
+    sanitized_html = PacifyPhp(PacifyHtmlComments( input_html ) )
     cursor_offset = OffsetForLineColumnInString( sanitized_html,
                                                  cursor_line,
                                                  cursor_column )
